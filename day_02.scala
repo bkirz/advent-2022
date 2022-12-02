@@ -1,10 +1,12 @@
 import scala.io.Source
 import scala.util.Try
 
-enum Shape(val score: Int) {
-  case Rock extends Shape(1)
-  case Paper extends Shape(2)
-  case Scissors extends Shape(3)
+enum Shape {
+  case Rock, Paper, Scissors
+
+  def score: Int = ordinal + 1
+  def defeats: Shape = Shape.fromOrdinal((ordinal + 2) % 3)
+  def defeatedBy: Shape = Shape.fromOrdinal((ordinal + 1) % 3)
 }
 
 object Shape {
@@ -15,7 +17,7 @@ object Shape {
       case "C" => Scissors
     }
 
-  def parseMinePart1(str: String): Shape =
+  def parseYours(str: String): Shape =
     str match {
       case "X" => Rock
       case "Y" => Paper
@@ -23,14 +25,10 @@ object Shape {
     }
 
   def fromOpponentShapeAndOutcome(opponent: Shape, outcome: Outcome) = {
-    (opponent, outcome) match {
-      case (_, Outcome.Tie)               => opponent
-      case (Shape.Rock, Outcome.Win)      => Shape.Paper
-      case (Shape.Paper, Outcome.Win)     => Shape.Scissors
-      case (Shape.Scissors, Outcome.Win)  => Shape.Rock
-      case (Shape.Rock, Outcome.Loss)     => Shape.Scissors
-      case (Shape.Paper, Outcome.Loss)    => Shape.Rock
-      case (Shape.Scissors, Outcome.Loss) => Shape.Paper
+    outcome match {
+      case Outcome.Tie  => opponent
+      case Outcome.Loss => opponent.defeats
+      case Outcome.Win  => opponent.defeatedBy
     }
   }
 }
@@ -51,22 +49,16 @@ object Outcome {
 
 case class Round(yours: Shape, opponents: Shape) {
   def score = {
-    val outcome: Outcome = this match {
-      case Round(Shape.Rock, Shape.Scissors)     => Outcome.Win
-      case Round(Shape.Paper, Shape.Rock)        => Outcome.Win
-      case Round(Shape.Scissors, Shape.Paper)    => Outcome.Win
-      case Round(Shape.Rock, Shape.Rock)         => Outcome.Tie
-      case Round(Shape.Paper, Shape.Paper)       => Outcome.Tie
-      case Round(Shape.Scissors, Shape.Scissors) => Outcome.Tie
-      case Round(Shape.Rock, Shape.Paper)        => Outcome.Loss
-      case Round(Shape.Paper, Shape.Scissors)    => Outcome.Loss
-      case Round(Shape.Scissors, Shape.Rock)     => Outcome.Loss
+    val outcome = if (yours == opponents) {
+      Outcome.Tie
+    } else if (yours.defeats == opponents) {
+      Outcome.Win
+    } else {
+      Outcome.Loss
     }
     outcome.score + yours.score
   }
 }
-
-object Round {}
 
 object Day02 {
   @main def main() = {
@@ -83,16 +75,16 @@ object Day02 {
   def parseLinePart1(line: String): Round =
     line.split(" ") match {
       case Array(opponent, mine) =>
-        Round(Shape.parseMinePart1(mine), Shape.parseOpponent(opponent))
+        Round(Shape.parseYours(mine), Shape.parseOpponent(opponent))
     }
 
   def parseLinePart2(line: String): Round =
     line.split(" ") match {
       case Array(opponent, outcomeStr) => {
         val opponentShape = Shape.parseOpponent(opponent)
-        val outcome = Outcome.parse(outcomeStr)
+        val desiredOutcome = Outcome.parse(outcomeStr)
         Round(
-          Shape.fromOpponentShapeAndOutcome(opponentShape, outcome),
+          Shape.fromOpponentShapeAndOutcome(opponentShape, desiredOutcome),
           opponentShape
         )
       }
