@@ -1,5 +1,4 @@
 import scala.io.Source
-import scala.util.Try
 
 enum Shape {
   case Rock, Paper, Scissors
