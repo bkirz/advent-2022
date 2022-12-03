@@ -60,7 +60,7 @@ case class Round(yours: Shape, opponents: Shape) {
 }
 
 object Day02 {
-  @main def main() = {
+  def main() = {
     val lines = Source.fromFile("day_02.input").getLines().toList
 
     println(
