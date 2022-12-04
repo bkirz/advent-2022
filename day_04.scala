@@ -14,16 +14,15 @@ case class RangePair(first: Range, second: Range) {
 }
 
 object Day04 {
-  val PATTERN = "(\\d+)-(\\d+),(\\d+)-(\\d+)".r
+  val LINE_PATTERN = "(\\d+)-(\\d+),(\\d+)-(\\d+)".r
   def parseLine(line: String): RangePair = {
     line match {
-      case PATTERN(firstStart, firstEnd, secondStart, secondEnd) =>
+      case LINE_PATTERN(firstStart, firstEnd, secondStart, secondEnd) =>
         RangePair(
           Range.inclusive(firstStart.toInt, firstEnd.toInt),
           Range.inclusive(secondStart.toInt, secondEnd.toInt)
         )
       case _ => throw new IllegalArgumentException(f"Unparseable line ${line}")
-
     }
   }
 
