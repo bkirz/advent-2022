@@ -1,7 +1,7 @@
 import scala.io.Source
 
 object Day03 {
-  @main def main() = {
+  def main() = {
     val lines = Source.fromFile("day_03.input").getLines().toList
 
     val dupedItemsPerRucksackPriority =
@@ -22,11 +22,19 @@ object Day03 {
   }
 
   def duplicatedItemInRucksack(line: String): Char = {
-    val (firstCompartment: Set[Char], secondCompartment: Set[Char]) =
-      line.splitAt(line.length / 2).map(_.toSet)
-    val commonItems: Set[Char] = firstCompartment.intersect(secondCompartment)
+    val (firstHalf, secondHalf) = line.splitAt(line.length / 2)
+    val firstCompartment = firstHalf.toSet
+    val secondCompartment = secondHalf.toSet
+    val commonItems: Set[Char] = firstCompartment & secondCompartment
     val List(item: Char) = commonItems.toList
-    item
+
+    commonItems.toList match {
+      case List(item: Char) => item
+      case _ =>
+        throw new IllegalArgumentException(
+          f"Found multiple duplicated items in rucksack: ${line}, dupes: ${commonItems}"
+        )
+    }
   }
 
   def duplicatedItemAcrossRucksacks(lines: List[String]): Char = {
