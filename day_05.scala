@@ -1,7 +1,19 @@
 import scala.io.Source
 import scala.util.matching.Regex
 
-case class CargoState(stacks: Array[List[Char]]) {
+case class MoveInstruction(count: Int, from: Int, to: Int)
+
+object CargoState {
+  def empty(size: Int): CargoState =
+    CargoState(Seq.fill(size) { List[Char]() })
+}
+
+case class CargoState(stacks: Seq[List[Char]]) {
+  def appendRow(cargoRow: Seq[Option[Char]]): CargoState =
+    CargoState(stacks.zip(cargoRow).map { (cargoStack, maybeCrate) =>
+      maybeCrate.map(_ :: cargoStack).getOrElse(cargoStack)
+    })
+
   def moveCargo(instruction: MoveInstruction, invert: Boolean): CargoState = {
     val fromStack = stacks(instruction.from)
     val toStack = stacks(instruction.to)
@@ -20,49 +32,29 @@ case class CargoState(stacks: Array[List[Char]]) {
 
   def topCrateString: String = stacks.map(_.head).mkString
 }
-case class MoveInstruction(count: Int, from: Int, to: Int)
 
 object Day05 {
-  // This is a huge hack, but the structure of the initial cargo state in the
-  // input is _very_ annoying to parse. When I have time, I might go back and
-  // attempt the following state building algo:
-  //   - reverse the top half of lines such that the first is an index by
-  //     column. build a Map[index, List[Char].empty] and a Map[index, column offset].
-  //   - for each remaining line (now from the base of the list), push values onto each
-  //     stack by iterating through the index->column offset map and finding the char
-  //     at each offset.
-  val INITIAL_CARGO_STATE = CargoState(
-    Array(
-      List('G', 'P', 'N', 'R'),
-      List('H', 'V', 'S', 'C', 'L', 'B', 'J', 'T'),
-      List('L', 'N', 'M', 'B', 'D', 'T'),
-      List('B', 'S', 'P', 'V', 'R'),
-      List('H', 'V', 'M', 'W', 'S', 'Q', 'C', 'G'),
-      List('J', 'B', 'D', 'C', 'S', 'Q', 'W'),
-      List('L', 'Q', 'F'),
-      List('V', 'F', 'L', 'D', 'T', 'H', 'M', 'W'),
-      List('F', 'J', 'M', 'V', 'B', 'P', 'L')
-    )
-  )
   @main def main = {
-    val lines = Source.fromFile("day_05.input").getLines().toList
+    val lines = Source.fromFile("day_05.input").getLines().toSeq
     val splitIndex = lines.indexOf("")
-    val (_cargoLines, moveLines) = lines.splitAt(splitIndex)
+    val (cargoLines, moveLines) = lines.splitAt(splitIndex)
 
-    val moveInstructions: List[MoveInstruction] =
+    val moveInstructions: Seq[MoveInstruction] =
       moveLines
         .drop(1) // Drop the blank line
         .map(parseMoveInstruction)
 
+    val initialCargoState = parseInitialCargoState(cargoLines)
+
     val finalCargoStateWithInverts =
-      moveInstructions.foldLeft(INITIAL_CARGO_STATE)((cargoState, instr) =>
+      moveInstructions.foldLeft(initialCargoState)((cargoState, instr) =>
         cargoState.moveCargo(instr, invert = true)
       )
 
     println(f"Part 1: ${finalCargoStateWithInverts.topCrateString}")
 
     val finalCargoStateWithoutInverts =
-      moveInstructions.foldLeft(INITIAL_CARGO_STATE)((cargoState, instr) =>
+      moveInstructions.foldLeft(initialCargoState)((cargoState, instr) =>
         cargoState.moveCargo(instr, invert = false)
       )
 
@@ -77,5 +69,22 @@ object Day05 {
       case _ =>
         throw new IllegalArgumentException(f"Invalid movement line: $line")
     }
+  }
+
+  val INDEX_PATTERN = """\d+""".r
+  def parseInitialCargoState(lines: Seq[String]): CargoState = {
+    val (cargoLines, Seq(indexesLine)) = lines.splitAt(lines.length - 1)
+    val numColumns = INDEX_PATTERN.findAllIn(indexesLine).length
+
+    def lineToOptionRow(line: String): Seq[Option[Char]] =
+      Range(1, numColumns * 4 + 1, 4).map { index =>
+        val char = line.charAt(index)
+        if char == ' ' then None else Some(char)
+      }
+
+    val initialCargoState = CargoState.empty(numColumns)
+    cargoLines.reverseIterator
+      .map(lineToOptionRow)
+      .foldLeft(initialCargoState)((state, row) => state.appendRow(row))
   }
 }
