@@ -26,7 +26,7 @@ object Day04 {
     }
   }
 
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_04.input").getLines().toList
     println(f"Part 1: ${lines.map(parseLine).filter(_.fullOverlap).length}")
     println(f"Part 2: ${lines.map(parseLine).filter(_.partialOverlap).length}")
