@@ -34,7 +34,7 @@ case class CargoState(stacks: Seq[List[Char]]) {
 }
 
 object Day05 {
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_05.input").getLines().toSeq
     val splitIndex = lines.indexOf("")
     val (cargoLines, moveLines) = lines.splitAt(splitIndex)
