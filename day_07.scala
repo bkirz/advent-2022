@@ -1,5 +1,4 @@
 import scala.io.Source
-import javax.swing.plaf.RootPaneUI
 
 sealed trait FSNode
 case object DirNode extends FSNode
