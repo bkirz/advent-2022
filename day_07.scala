@@ -117,10 +117,8 @@ object Day07 {
             (currentState.currentDir :+ name, DirNode)
           case FileDescription(name, size) =>
             (currentState.currentDir :+ name, FileNode(size))
-
         }
         currentState.copy(nodes = currentState.nodes ++ newNodes)
     }
   }
-
 }
