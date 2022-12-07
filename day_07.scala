@@ -21,6 +21,9 @@ case class FilesystemState(
 
   def dirPaths: List[List[String]] =
     nodes.collect { case (path, DirNode) => path }.toList
+
+  def usedSpace: Int =
+    nodes.collect { case (_, FileNode(size)) => size }.sum
 }
 
 sealed trait ShellCommand
@@ -38,6 +41,8 @@ case class FileDescription(name: String, size: Int) extends LSOutput
 case class DirDescription(name: String) extends LSOutput
 
 val DIR_SIZE_THRESHOLD = 100_000
+val TOTAL_DISK_SPACE = 70_000_000
+val TARGET_UNUSED_SPACE = 30_000_000
 
 object Day07 {
   @main def main = {
@@ -49,12 +54,13 @@ object Day07 {
       currentDir = List()
     )
     val finalFsState = commands.foldLeft(initialFsState)(processCommand)
-    val part1Solution =
-      finalFsState.dirPaths
-        .map(path => finalFsState.dirSize(path))
-        .filter(_ <= DIR_SIZE_THRESHOLD)
-        .sum
-    println(f"Part 1: $part1Solution")
+    val dirSizes = finalFsState.dirPaths.map(path => finalFsState.dirSize(path))
+
+    val emptySpaceRemaining = TOTAL_DISK_SPACE - finalFsState.usedSpace
+    val minSizeToDelete = TARGET_UNUSED_SPACE - emptySpaceRemaining
+
+    println(f"Part 1: ${dirSizes.filter(_ <= DIR_SIZE_THRESHOLD).sum}")
+    println(f"Part 2: ${dirSizes.filter(_ >= minSizeToDelete).min}")
   }
 
   val CD_PATTERN = """\$ cd (/|\.\.|\w+)""".r
