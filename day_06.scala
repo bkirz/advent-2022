@@ -1,7 +1,7 @@
 import scala.io.Source
 
 object Day06 {
-  @main def main = {
+  def main = {
     val List(input) = Source.fromFile("day_06.input").getLines().toList
 
     println(f"Part 1: ${findMarker(input, 4)}")
