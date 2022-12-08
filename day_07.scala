@@ -44,7 +44,7 @@ val TOTAL_DISK_SPACE = 70_000_000
 val TARGET_UNUSED_SPACE = 30_000_000
 
 object Day07 {
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_07.input").getLines().toList
     val commands = parseCommands(lines)
 
