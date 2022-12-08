@@ -34,12 +34,11 @@ class Forest(grid: Array[Array[Int]]) {
     val height = heightOf(coord)
 
     def visibleFrom(direction: Direction): Boolean = {
-      var currentCoord = coord.step(direction)
-      while (inBounds(currentCoord)) {
-        if (heightOf(currentCoord) >= height) { return false }
-        currentCoord = currentCoord.step(direction)
-      }
-      return true
+      Stream
+        .iterate(coord)(_.step(direction))
+        .drop(1) // Don't consider the current coord
+        .takeWhile(inBounds(_))
+        .forall(heightOf(_) < height)
     }
 
     Direction.values.exists(visibleFrom)
