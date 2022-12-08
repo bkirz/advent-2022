@@ -1,8 +1,15 @@
 import scala.io.Source
 
-case class Coord(row: Int, col: Int)
-
 enum Direction { case North, East, South, West }
+
+case class Coord(row: Int, col: Int) {
+  def step(direction: Direction): Coord = direction match {
+    case Direction.North => copy(row = row - 1)
+    case Direction.South => copy(row = row + 1)
+    case Direction.East  => copy(col = col - 1)
+    case Direction.West  => copy(col = col + 1)
+  }
+}
 
 class Forest(grid: Array[Array[Int]]) {
   val rowCount = grid.length
@@ -27,22 +34,36 @@ class Forest(grid: Array[Array[Int]]) {
     val height = heightOf(coord)
 
     def visibleFrom(direction: Direction): Boolean = {
-      val step: (Coord) => Coord = direction match {
-        case Direction.North => (coord) => coord.copy(row = coord.row - 1)
-        case Direction.South => (coord) => coord.copy(row = coord.row + 1)
-        case Direction.East  => (coord) => coord.copy(col = coord.col - 1)
-        case Direction.West  => (coord) => coord.copy(col = coord.col + 1)
-      }
-
-      var currentCoord = step(coord)
+      var currentCoord = coord.step(direction)
       while (inBounds(currentCoord)) {
         if (heightOf(currentCoord) >= height) { return false }
-        currentCoord = step(currentCoord)
+        currentCoord = currentCoord.step(direction)
       }
       return true
     }
 
     Direction.values.exists(visibleFrom)
+  }
+
+  def scenicScore(coord: Coord): Int = {
+    val height = heightOf(coord)
+
+    def uninterruptedViewLength(direction: Direction): Int =
+      Stream
+        .iterate(coord)(_.step(direction))
+        /* This is needed to get around the annoying requirement
+         * that we do count the first tree >= the current square
+         * but we don't count the coordinate past the edge of the forest.
+         * The sliding window lets us look ahead one square for height,
+         * but not for boundary checks. */
+        .sliding(2)
+        .map(_.toList)
+        .takeWhile { case List(prev: Coord, current: Coord) =>
+          inBounds(current) && (coord == prev || heightOf(prev) < height)
+        }
+        .length
+
+    Direction.values.map(uninterruptedViewLength).product
   }
 }
 
@@ -54,5 +75,6 @@ object Day08 {
     }.toArray)
 
     println(f"Part 1: ${forest.allCoords.count(forest.isVisible(_))}")
+    println(f"Part 2: ${forest.allCoords.map(forest.scenicScore(_)).max}")
   }
 }
