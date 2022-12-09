@@ -33,15 +33,19 @@ object Day09 {
     }
   }
 
-  case class RopeState(head: Coord, tail: Coord, tailVisited: Set[Coord]) {
+  case class RopeState(knots: List[Coord], tailVisited: Set[Coord]) {
     def step(direction: Direction): RopeState = {
-      val newHead = head.step(direction)
-      val newTail = tail.seekTowards(newHead)
+      val updatedHead = knots.head.step(direction)
+      val updatedKnots =
+        knots.tail
+          .foldLeft(List(updatedHead))((updatedParents, currentKnot) =>
+            currentKnot.seekTowards(updatedParents.head) :: updatedParents
+          )
+          .reverse
 
       RopeState(
-        head = newHead,
-        tail = newTail,
-        tailVisited = tailVisited + newTail
+        knots = updatedKnots,
+        tailVisited = tailVisited + updatedKnots.last
       )
     }
   }
@@ -49,21 +53,26 @@ object Day09 {
   case class Instruction(direction: Direction, count: Int)
 
   @main def main = {
-    val lines = Source.fromFile("day_09.input").getLines()
+    val lines = Source.fromFile("day_09.input").getLines().toList
     val instructions = lines.map(parseLine)
-    println(s"Instructions: ${instructions}")
+
+    println(s"Part 1: ${simulateRope(2, instructions).tailVisited.size}")
+    println(s"Part 2: ${simulateRope(10, instructions).tailVisited.size}")
+  }
+
+  def simulateRope(
+      length: Int,
+      instructions: List[Instruction]
+  ): RopeState = {
     val initialRopeState = RopeState(
-      head = Coord(0, 0),
-      tail = Coord(0, 0),
+      knots = List.fill(length)(Coord(0, 0)),
       tailVisited = Set(Coord(0, 0))
     )
-
-    val finalState =
-      instructions
-        .flatMap { case Instruction(dir, count) => List.fill(count)(dir) }
-        .foldLeft[RopeState](initialRopeState)(_.step(_))
-
-    println(s"Part 1: ${finalState.tailVisited.size}")
+    instructions
+      .flatMap { case Instruction(dir, count) => List.fill(count)(dir) }
+      .foldLeft[RopeState](initialRopeState) { (state, direction) =>
+        state.step(direction)
+      }
   }
 
   def parseLine(line: String): Instruction = {
