@@ -67,7 +67,7 @@ class Forest(grid: Array[Array[Int]]) {
 }
 
 object Day08 {
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_08.input").getLines().toList
     val forest = Forest(lines.map { (row: String) =>
       row.toCharArray.map(_.toInt)
