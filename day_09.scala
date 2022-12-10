@@ -52,7 +52,7 @@ object Day09 {
 
   case class Instruction(direction: Direction, count: Int)
 
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_09.input").getLines().toList
     val instructions = lines.map(parseLine)
 
