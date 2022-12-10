@@ -25,7 +25,7 @@ object Day10 {
       cyclesIntoCurrentInstruction: Int
   ) {
     def step: CpuState = {
-      if (isComplete) { return this }
+      if (instructions.isEmpty) { return this }
       val currentInstruction :: nextInstructions = instructions
 
       if (cyclesIntoCurrentInstruction + 1 == currentInstruction.cycleCount) {
@@ -42,8 +42,6 @@ object Day10 {
         )
       }
     }
-
-    def isComplete: Boolean = instructions.isEmpty
 
     def signalStrength = cycleNum * registers.x
 
