@@ -65,7 +65,7 @@ object Day10 {
     )
 
     val stateIterator: Stream[CpuState] =
-      Stream.iterate(initialCpuState)(_.step).tapEach(println(_))
+      Stream.iterate(initialCpuState)(_.step)
 
     val checkSignalStrengthAt = List(20, 60, 100, 140, 180, 220)
     val part1 = checkSignalStrengthAt.map { cycleNum =>
