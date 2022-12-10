@@ -4,8 +4,8 @@ object Day10 {
   val CRT_HEIGHT = 6
 
   sealed trait Instruction {
-    val cycleCount: Int;
-    def apply(registers: Registers): Registers;
+    val cycleCount: Int
+    def apply(registers: Registers): Registers
   }
   case object Noop extends Instruction {
     val cycleCount = 1
