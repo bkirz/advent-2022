@@ -1,5 +1,8 @@
 import scala.io.Source
 object Day10 {
+  val CRT_WIDTH = 40
+  val CRT_HEIGHT = 6
+
   sealed trait Instruction {
     val cycleCount: Int;
     def apply(registers: Registers): Registers;
@@ -44,8 +47,16 @@ object Day10 {
 
     def signalStrength = cycleNum * registers.x
 
+    def spriteIndices: Range = {
+      val spriteStart = (registers.x - 1) % CRT_WIDTH + 1
+      spriteStart.until(spriteStart + 2).inclusive
+    }
+
+    lazy val pixel: Boolean =
+      spriteIndices.contains((cycleNum - 1) % CRT_WIDTH + 1)
+
     override def toString(): String = {
-      s"CpuState($cycleNum, $cyclesIntoCurrentInstruction, $registers, current_instruction: ${instructions.head}, remaining_instructions: ${instructions.length})"
+      s"CpuState($cycleNum, $cyclesIntoCurrentInstruction, $registers, current_instruction: ${instructions.headOption}, remaining_instructions: ${instructions.length})"
     }
   }
 
@@ -58,16 +69,25 @@ object Day10 {
       instructions = instructions,
       cyclesIntoCurrentInstruction = 0
     )
-    val checkSignalStrengthAt = List(20, 60, 100, 140, 180, 220)
 
     val stateIterator: Stream[CpuState] =
       Stream.iterate(initialCpuState)(_.step).tapEach(println(_))
 
+    val checkSignalStrengthAt = List(20, 60, 100, 140, 180, 220)
     val part1 = checkSignalStrengthAt.map { cycleNum =>
       stateIterator.find(_.cycleNum == cycleNum).get.signalStrength
     }.sum
+    println(s"Part 1: $part1")
 
-    println(s"Part 1: ${part1}")
+    val part2 =
+      stateIterator
+        .takeWhile(cpuState => cpuState.cycleNum <= CRT_HEIGHT * CRT_WIDTH)
+        .map(cpuState => if (cpuState.pixel) '#' else '.')
+        .grouped(CRT_WIDTH)
+        .map(group => group.toArray.mkString)
+        .mkString("\n")
+
+    println(s"Part 2:\n$part2")
   }
 
   val ADDX_PATTERN = s"""addx (-?\\d+)""".r
