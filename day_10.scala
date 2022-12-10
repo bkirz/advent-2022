@@ -52,10 +52,6 @@ object Day10 {
 
     lazy val pixel: Boolean =
       spriteIndices.contains((cycleNum - 1) % CRT_WIDTH + 1)
-
-    override def toString(): String = {
-      s"CpuState($cycleNum, $cyclesIntoCurrentInstruction, $registers, current_instruction: ${instructions.headOption}, remaining_instructions: ${instructions.length})"
-    }
   }
 
   @main def main = {
