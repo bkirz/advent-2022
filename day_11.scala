@@ -1,18 +1,42 @@
 import scala.io.Source
 import scala.collection.immutable.SortedMap
+import scala.math.BigInt
 
 object Day11 {
-  sealed trait Operation { def apply(input: Int): Int }
+  sealed trait WorryLevel[Self <: WorryLevel[Self]] {
+    def divisibleBy(divisor: Int): Boolean
+
+    def +(other: Int): Self
+    def *(other: Int): Self
+    def square: Self
+
+    def postProcess: Self
+  }
+
+  // Preserves the int behavior from part 1
+  case class IntWorryLevel(value: Int) extends WorryLevel[IntWorryLevel] {
+    def divisibleBy(divisor: Int): Boolean = value % divisor == 0
+
+    def +(other: Int): IntWorryLevel = IntWorryLevel(value + other)
+    def *(other: Int): IntWorryLevel = IntWorryLevel(value * other)
+    def square: IntWorryLevel = IntWorryLevel(value * value)
+
+    def postProcess: IntWorryLevel = IntWorryLevel(value / 3)
+  }
+
+  sealed trait Operation { def apply(input: WorryLevel[_]): WorryLevel[_] }
   case class Add(value: Int) extends Operation {
-    def apply(input: Int) = value + input
+    def apply(input: WorryLevel[_]) = input + value
   }
   case class Mul(value: Int) extends Operation {
-    def apply(input: Int) = value * input
+    def apply(input: WorryLevel[_]) = input * value
   }
-  case object Square extends Operation { def apply(input: Int) = input * input }
+  case object Square extends Operation {
+    def apply(input: WorryLevel[_]) = input.square
+  }
 
   case class Monkey(
-      items: List[Int],
+      items: List[WorryLevel[_]],
       operation: Operation,
       testDivisor: Int,
       ifTrue: Int,
@@ -20,10 +44,10 @@ object Day11 {
       itemsInspected: Int
   ) {
     def stepTurn: (Monkey, List[ThrownItem]) = {
-      def processItem(item: Int): ThrownItem = {
-        val newWorryLevel = operation(item) / 3
+      def processItem(item: WorryLevel[_]): ThrownItem = {
+        val newWorryLevel = operation(item).postProcess
         val toMonkey: Int =
-          if (newWorryLevel % testDivisor == 0) { ifTrue }
+          if (newWorryLevel.divisibleBy(testDivisor)) { ifTrue }
           else { ifFalse }
         ThrownItem(toMonkey = toMonkey, newWorryLevel = newWorryLevel)
       }
@@ -37,44 +61,33 @@ object Day11 {
       )
     }
 
-    def acceptItems(newItems: List[Int]) =
+    def acceptItems(newItems: List[WorryLevel[_]]) =
       this.copy(items = this.items ++ newItems.reverse)
   }
 
-  case class ThrownItem(toMonkey: Int, newWorryLevel: Int)
+  case class ThrownItem(toMonkey: Int, newWorryLevel: WorryLevel[_])
 
   case class KeepAwayGame(monkeys: SortedMap[Int, Monkey]) {
     def stepRound: KeepAwayGame = {
       val updatedMap =
-        monkeys.foldLeft(monkeys) { case (acc, (monkeyNum, _monkey)) =>
+        monkeys.keys.foldLeft(monkeys) { case (acc, monkeyNum) =>
           val monkey = acc(monkeyNum)
-          println(s"Processing monkey turn $monkeyNum, $monkey")
           val (updatedMonkey, thrownItems) = monkey.stepTurn
-          println(s"Thrown items: $thrownItems")
           val (trueItems, falseItems) =
             thrownItems.partition(item => item.toMonkey == monkey.ifTrue)
 
-          val innerUpdatedMap: SortedMap[Int, Monkey] =
-            acc
-              .updated(monkeyNum, updatedMonkey)
-              .updatedWith(monkey.ifTrue) { maybeMonkey =>
-                println(
-                  s"Updating ${monkey.ifTrue} with current value $maybeMonkey"
-                )
-                maybeMonkey.map { m =>
-                  m.acceptItems(trueItems.map(_.newWorryLevel))
-                }
+          acc
+            .updated(monkeyNum, updatedMonkey)
+            .updatedWith(monkey.ifTrue) { maybeMonkey =>
+              maybeMonkey.map { m =>
+                m.acceptItems(trueItems.map(_.newWorryLevel))
               }
-              .updatedWith(monkey.ifFalse) { maybeMonkey =>
-                println(
-                  s"Updating ${monkey.ifFalse} with current value $maybeMonkey"
-                )
-                maybeMonkey.map { m =>
-                  m.acceptItems(falseItems.map(_.newWorryLevel))
-                }
+            }
+            .updatedWith(monkey.ifFalse) { maybeMonkey =>
+              maybeMonkey.map { m =>
+                m.acceptItems(falseItems.map(_.newWorryLevel))
               }
-          println(innerUpdatedMap)
-          innerUpdatedMap
+            }
         }
       KeepAwayGame(updatedMap)
     }
@@ -84,16 +97,28 @@ object Day11 {
   }
 
   val PART_1_ROUNDS = 20
+  val PART_2_ROUNDS = 10_000
 
   @main def main = {
     val input = Source.fromFile("day_11.input").getLines().mkString("\n")
-    val initialGameState = parseMonkeys(input)
-    val finalGameState =
-      1.to(PART_1_ROUNDS).foldLeft(initialGameState) { (round, _) =>
+    val initialPart1GameState = parseMonkeys(input, (x) => IntWorryLevel(x))
+    val finalPart1GameState =
+      1.to(PART_1_ROUNDS).foldLeft(initialPart1GameState) { (r, _) =>
+        r.stepRound
+      }
+
+    println(s"Part 1: ${finalPart1GameState.monkeyBusiness}")
+    /*
+    val finalPart2GameState =
+      1.to(PART_2_ROUNDS).foldLeft(initialGameState) { (round, roundNum) =>
+        if (roundNum % 100 == 0) {
+          println(s"Processing round $roundNum with state $round")
+        }
         round.stepRound
       }
 
-    println(s"Part 1: ${finalGameState.monkeyBusiness}")
+    println(s"Part 2: ${finalPart2GameState.monkeyBusiness}")
+     */
   }
 
   val PATTERN =
@@ -105,7 +130,10 @@ object Day11 {
       "    If false: throw to monkey (\d)"""
       .stripMargin('"')
       .r
-  def parseMonkeys(input: String): KeepAwayGame = {
+  def parseMonkeys(
+      input: String,
+      makeWorryLevel: (Int) => WorryLevel[_]
+  ): KeepAwayGame = {
     val kvPairs = PATTERN
       .findAllMatchIn(input)
       .map { m =>
@@ -121,7 +149,10 @@ object Day11 {
             (
               num.toInt,
               Monkey(
-                items = startingItems.split(", ").map(_.toInt).toList,
+                items = startingItems
+                  .split(", ")
+                  .map { str => makeWorryLevel(str.toInt) }
+                  .toList,
                 operation = parseOperation(operation),
                 testDivisor = testDivisor.toInt,
                 ifTrue = ifTrue.toInt,
