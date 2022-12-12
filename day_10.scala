@@ -24,24 +24,26 @@ object Day10 {
       instructions: List[Instruction],
       cyclesIntoCurrentInstruction: Int
   ) {
-    def step: CpuState = {
-      if (instructions.isEmpty) { return this }
-      val currentInstruction :: nextInstructions = instructions
-
-      if (cyclesIntoCurrentInstruction + 1 == currentInstruction.cycleCount) {
-        this.copy(
-          cycleNum = cycleNum + 1,
-          instructions = nextInstructions,
-          registers = currentInstruction.apply(registers),
-          cyclesIntoCurrentInstruction = 0
-        )
-      } else {
-        this.copy(
-          cycleNum = cycleNum + 1,
-          cyclesIntoCurrentInstruction = cyclesIntoCurrentInstruction + 1
-        )
+    def step: CpuState =
+      instructions match {
+        case List() => return this
+        case currentInstruction :: nextInstructions =>
+          if (
+            cyclesIntoCurrentInstruction + 1 == currentInstruction.cycleCount
+          ) {
+            this.copy(
+              cycleNum = cycleNum + 1,
+              instructions = nextInstructions,
+              registers = currentInstruction.apply(registers),
+              cyclesIntoCurrentInstruction = 0
+            )
+          } else {
+            this.copy(
+              cycleNum = cycleNum + 1,
+              cyclesIntoCurrentInstruction = cyclesIntoCurrentInstruction + 1
+            )
+          }
       }
-    }
 
     def signalStrength = cycleNum * registers.x
 
@@ -54,7 +56,7 @@ object Day10 {
       spriteIndices.contains((cycleNum - 1) % CRT_WIDTH + 1)
   }
 
-  @main def main = {
+  def main = {
     val lines = Source.fromFile("day_10.input").getLines().toList
     val instructions = lines.map(parseLine)
     val initialCpuState = CpuState(
