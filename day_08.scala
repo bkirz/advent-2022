@@ -57,8 +57,10 @@ class Forest(grid: Array[Array[Int]]) {
          * but not for boundary checks. */
         .sliding(2)
         .map(_.toList)
-        .takeWhile { case List(prev: Coord, current: Coord) =>
-          inBounds(current) && (coord == prev || heightOf(prev) < height)
+        .takeWhile {
+          case List(prev: Coord, current: Coord) =>
+            inBounds(current) && (coord == prev || heightOf(prev) < height)
+          case _ => throw new RuntimeException("This should be unreachable")
         }
         .length
 
