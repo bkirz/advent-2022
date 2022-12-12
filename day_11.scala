@@ -24,6 +24,35 @@ object Day11 {
     def postProcess: IntWorryLevel = IntWorryLevel(value / 3)
   }
 
+  // Model worry level as a mapping of prime to its remainder mod that prime
+  case class ModWorryLevel(values: Map[Int, Int])
+      extends WorryLevel[ModWorryLevel] {
+
+    def divisibleBy(divisor: Int): Boolean = values(divisor) == 0
+
+    def +(other: Int): ModWorryLevel =
+      ModWorryLevel(values.map { case (base, value) =>
+        (base, (value + other) % base)
+      })
+    def *(other: Int): ModWorryLevel =
+      ModWorryLevel(values.map { case (base, value) =>
+        (base, (value * other) % base)
+      })
+    def square: ModWorryLevel =
+      ModWorryLevel(values.map { case (base, value) =>
+        (base, (value * value) % base)
+      })
+
+    def postProcess: ModWorryLevel = this
+  }
+
+  object ModWorryLevel {
+    val BASES = List(2, 3, 5, 7, 11, 13, 17, 19) // TODO: Calc from input
+    def fromNum(value: Int): ModWorryLevel = {
+      ModWorryLevel(BASES.map(base => (base, value % base)).toMap)
+    }
+  }
+
   sealed trait Operation { def apply(input: WorryLevel[_]): WorryLevel[_] }
   case class Add(value: Int) extends Operation {
     def apply(input: WorryLevel[_]) = input + value
@@ -41,7 +70,7 @@ object Day11 {
       testDivisor: Int,
       ifTrue: Int,
       ifFalse: Int,
-      itemsInspected: Int
+      itemsInspected: BigInt
   ) {
     def stepTurn: (Monkey, List[ThrownItem]) = {
       def processItem(item: WorryLevel[_]): ThrownItem = {
@@ -92,7 +121,7 @@ object Day11 {
       KeepAwayGame(updatedMap)
     }
 
-    def monkeyBusiness: Int =
+    def monkeyBusiness: BigInt =
       monkeys.values.map(_.itemsInspected).toArray.sorted.takeRight(2).product
   }
 
@@ -108,9 +137,11 @@ object Day11 {
       }
 
     println(s"Part 1: ${finalPart1GameState.monkeyBusiness}")
-    /*
+
+    val initialPart2GameState =
+      parseMonkeys(input, (x) => ModWorryLevel.fromNum(x))
     val finalPart2GameState =
-      1.to(PART_2_ROUNDS).foldLeft(initialGameState) { (round, roundNum) =>
+      1.to(PART_2_ROUNDS).foldLeft(initialPart2GameState) { (round, roundNum) =>
         if (roundNum % 100 == 0) {
           println(s"Processing round $roundNum with state $round")
         }
@@ -118,7 +149,6 @@ object Day11 {
       }
 
     println(s"Part 2: ${finalPart2GameState.monkeyBusiness}")
-     */
   }
 
   val PATTERN =
