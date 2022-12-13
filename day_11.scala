@@ -128,7 +128,7 @@ object Day11 {
   val PART_1_ROUNDS = 20
   val PART_2_ROUNDS = 10_000
 
-  @main def main = {
+  def main = {
     val input = Source.fromFile("day_11.input").getLines().mkString("\n")
     val initialPart1GameState = parseMonkeys(input, (x) => IntWorryLevel(x))
     val finalPart1GameState =
