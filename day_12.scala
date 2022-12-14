@@ -38,12 +38,15 @@ object Day12 {
       Point(-1, 0)
     )
 
+    def neighborsTraverseable(from: Point, to: Point): Boolean = {
+      val fromHeight = heightAt(from).get
+      heightAt(to).exists { toHeight => toHeight - fromHeight <= 1 }
+    }
+
     def neighbors(point: Point): List[Point] =
       val height = heightAt(point).get
       NEIGHBOR_OFFSETS.map(_ + point).filter { neighbor =>
-        heightAt(neighbor).exists { neighborHeight =>
-          neighborHeight - height <= 1
-        }
+        heightAt(neighbor).isDefined
       }
 
     def heightAt(point: Point): Option[Char] =
@@ -54,55 +57,72 @@ object Day12 {
       }
 
     def shortestDistance(origin: Point, dest: Point): Int = {
-      @tailrec def recursivelyFindShortestPaths(
-          node: Point,
-          dest: Point,
-          // Shortest known distance to Point from origin.
-          // A missing entry represents infinite distance.
-          distances: Map[Point, Int],
-          unvisited: Set[Point]
-      ): Map[Point, Int] = {
-        println(
-          s"Visiting $node, target: $dest, unvisited: ${unvisited.size}"
+      recursivelyFindShortestPaths(
+        node = origin,
+        distances = Map(start -> 0),
+        unvisited = allPoints - origin,
+        isTraverseable = (from, to) => {
+          heightAt(to).get - heightAt(from).get <= 1
+        }
+      )(dest)
+    }
+
+    def shortestStartingDistance(dest: Point): Int = {
+      val distances =
+        recursivelyFindShortestPaths(
+          node = dest,
+          distances = Map(dest -> 0),
+          unvisited = allPoints - dest,
+          isTraverseable = (from, to) => {
+            heightAt(from).get - heightAt(to).get <= 1
+          }
         )
-        if (node == dest) { return distances }
-        else {
-          val updatedDistances = updateDistances(node, distances)
-          val nextNode =
-            updatedDistances.filterKeys(unvisited.contains(_)).minBy(_._2)._1
+      distances.filterKeys(p => heightAt(p).get == 'a').values.min
+    }
+
+    @tailrec private def recursivelyFindShortestPaths(
+        node: Point,
+        // Shortest known distance to Point from origin.
+        // A missing entry represents infinite distance.
+        distances: Map[Point, Int],
+        unvisited: Set[Point],
+        isTraverseable: (from: Point, to: Point) => Boolean
+    ): Map[Point, Int] = {
+      val updatedDistances = updateDistances(node, distances, isTraverseable)
+      updatedDistances
+        .filterKeys(unvisited.contains(_))
+        .minByOption(_._2) match {
+        case None =>
+          // Nothing left to traverse
+          return updatedDistances
+        case Some((nextNode, _)) =>
           val updatedUnvisited = unvisited - nextNode
 
           recursivelyFindShortestPaths(
-            nextNode,
-            end,
-            updatedDistances,
-            updatedUnvisited
+            node = nextNode,
+            distances = updatedDistances,
+            unvisited = updatedUnvisited,
+            isTraverseable = isTraverseable
           )
+      }
+    }
+
+    private def updateDistances(
+        node: Point,
+        distances: Map[Point, Int],
+        isTraverseable: (Point, Point) => Boolean
+    ): Map[Point, Int] = {
+      val updatedDistancesToNeighbors = this
+        .neighbors(node)
+        .filter(neighbor => isTraverseable(node, neighbor))
+        .map { neighbor =>
+          val distanceThroughNode = distances(node) + 1
+          val knownDistance = distances.getOrElse(neighbor, Int.MaxValue)
+          (neighbor, Math.min(distanceThroughNode, knownDistance))
         }
-      }
+        .toMap
 
-      def updateDistances(
-          node: Point,
-          distances: Map[Point, Int]
-      ): Map[Point, Int] = {
-        val updatedDistancesToNeighbors = this
-          .neighbors(node)
-          .map { neighbor =>
-            val distanceThroughNode = distances(node) + 1
-            val knownDistance = distances.getOrElse(neighbor, Int.MaxValue)
-            (neighbor, Math.min(distanceThroughNode, knownDistance))
-          }
-          .toMap
-
-        distances ++ updatedDistancesToNeighbors
-      }
-
-      recursivelyFindShortestPaths(
-        node = start,
-        dest = end,
-        distances = Map(start -> 0),
-        unvisited = allPoints - start
-      )(end)
+      distances ++ updatedDistancesToNeighbors
     }
   }
 
@@ -117,5 +137,6 @@ object Day12 {
 
     println(s"Part 1: ${grid.shortestDistance(grid.start, grid.end)}")
 
+    println(s"Part 2: ${grid.shortestStartingDistance(grid.end)}")
   }
 }
