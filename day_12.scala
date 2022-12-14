@@ -126,7 +126,7 @@ object Day12 {
     }
   }
 
-  @main def main = {
+  def main = {
     val grid = Grid(
       Source
         .fromFile("day_12.input")
